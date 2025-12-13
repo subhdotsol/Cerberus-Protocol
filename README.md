@@ -13,6 +13,8 @@ Cerberus Protocol is not just an airdrop contract. It can be used for:
 
 ---
 
+![Cerberus](https://images2.alphacoders.com/138/thumb-1920-1385120.png)
+
 ## Core Idea
 
 > **Eligibility is discovered off-chain, but enforced on-chain.**
