@@ -1,10 +1,10 @@
-# MerkleGate
+# Cerberus Protocol
 
-**MerkleGate** is a reusable, proof-based distribution and access-control primitive for Solana.
+**Cerberus Protocol** is a reusable, proof-based distribution and access-control primitive for Solana.
 
 It allows an organizer to commit to a fixed set of eligible wallets off-chain, publish a single Merkle root on-chain, and let users **prove their eligibility and claim exactly once** — without storing the full whitelist on-chain.
 
-MerkleGate is not just an airdrop contract. It can be used for:
+Cerberus Protocol is not just an airdrop contract. It can be used for:
 - Token airdrops
 - Whitelists
 - NFT mint access
@@ -26,7 +26,7 @@ MerkleGate is not just an airdrop contract. It can be used for:
 
 ## System Overview
 
-MerkleGate has three components:
+Cerberus Protocol has three components:
 
 ```
 [ Backend (off-chain) ]  --->  [ Smart Contract ]  <---  [ Frontend ]
@@ -149,7 +149,7 @@ The user signs and submits it.
 
 ### 7. Smart Contract Verifies (On-chain)
 
-The MerkleGate program:
+The Cerberus Protocol program:
 
 1. Recomputes the leaf from user data
 2. Verifies the Merkle proof against the stored root
@@ -212,20 +212,20 @@ All enforcement happens on-chain.
 
 ---
 
-## Why MerkleGate
+## Why Cerberus Protocol
 
 - Gas efficient
 - Scales to large airdrops
 - Reusable across use cases
 - Production-proven pattern
 
-MerkleGate is a **permission engine**, not just an airdrop.
+Cerberus Protocol is a **permission engine**, not just an airdrop.
 
 ---
 
 ## Summary
 
-> MerkleGate lets organizers commit to eligibility off-chain and lets users prove eligibility on-chain — exactly once.
+> Cerberus Protocol lets organizers commit to eligibility off-chain and lets users prove eligibility on-chain — exactly once.
 
 ---
 
