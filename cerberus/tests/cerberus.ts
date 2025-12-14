@@ -7,7 +7,8 @@ import {
   createMint, 
   createAccount, 
   mintTo,
-  getAccount
+  getAccount,
+  getOrCreateAssociatedTokenAccount
 } from "@solana/spl-token";
 import { assert } from "chai";
 import { keccak256 } from "js-sha3";
@@ -74,15 +75,28 @@ describe("cerberus", () => {
       9 // 9 decimals
     );
     
-    // Step 5: Create vault token account
-    vault = await createAccount(
+    // Step 5: Derive PDAs (needed for vault creation)
+    [distributorPda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("distributor")],
+      program.programId
+    );
+    
+    [bitmapPda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("bitmap"), distributorPda.toBuffer()],
+      program.programId
+    );
+    
+    // Step 6: Create vault token account (owned by distributor PDA)
+    const vaultAccount = await getOrCreateAssociatedTokenAccount(
       provider.connection,
       authority,
       mint,
-      authority.publicKey
+      distributorPda,
+      true  // allowOwnerOffCurve - allows PDA to own the account
     );
+    vault = vaultAccount.address;
     
-    // Step 6: Mint tokens to vault (1,000,000 tokens)
+    // Step 7: Mint tokens to vault (1,000,000 tokens)
     await mintTo(
       provider.connection,
       authority,
@@ -92,7 +106,7 @@ describe("cerberus", () => {
       1_000_000 * 10 ** 9
     );
     
-    // Step 7: Create user token accounts
+    // Step 8: Create user token accounts
     user1TokenAccount = await createAccount(
       provider.connection,
       user1,
@@ -107,7 +121,7 @@ describe("cerberus", () => {
       user2.publicKey
     );
     
-    // Step 8: Build Merkle tree
+    // Step 9: Build Merkle tree
     leaves = [
       { wallet: user1.publicKey, amount: 100 * 10 ** 9, index: 0 },
       { wallet: user2.publicKey, amount: 200 * 10 ** 9, index: 1 },
@@ -116,17 +130,6 @@ describe("cerberus", () => {
     const { root, proofMap } = buildMerkleTree(leaves);
     merkleRoot = root;
     proofs = proofMap;
-    
-    // Step 9: Derive PDAs
-    [distributorPda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("distributor")],
-      program.programId
-    );
-    
-    [bitmapPda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("bitmap"), distributorPda.toBuffer()],
-      program.programId
-    );
     
     console.log("Setup complete!");
     console.log("Merkle Root:", Buffer.from(merkleRoot).toString("hex"));
@@ -210,8 +213,8 @@ describe("cerberus", () => {
       const tx = await program.methods
         .claim(
           0, // root_index
-          leaf.index,
-          new anchor.BN(leaf.amount),
+          new anchor.BN(leaf.index),
+          new anchor.BN(leaf.amount.toString()),
           proof
         )
         .accounts({
@@ -262,8 +265,8 @@ describe("cerberus", () => {
         await program.methods
           .claim(
             0,
-            leaf.index,
-            new anchor.BN(leaf.amount),
+            new anchor.BN(leaf.index),
+            new anchor.BN(leaf.amount.toString()),
             proof
           )
           .accounts({
@@ -297,8 +300,8 @@ describe("cerberus", () => {
         await program.methods
           .claim(
             0,
-            leaf.index,
-            new anchor.BN(leaf.amount),
+            new anchor.BN(leaf.index),
+            new anchor.BN(leaf.amount.toString()),
             invalidProof
           )
           .accounts({
@@ -332,11 +335,11 @@ describe("cerberus", () => {
       const user2Before = await getAccount(provider.connection, user2TokenAccount);
       
       // Step 3: Claim
-      await program.methods
+      const tx = await program.methods
         .claim(
           0,
-          leaf.index,
-          new anchor.BN(leaf.amount),
+          new anchor.BN(leaf.index),
+          new anchor.BN(leaf.amount.toString()),
           proof
         )
         .accounts({
@@ -515,7 +518,7 @@ describe("cerberus", () => {
       
       // Step 3: Withdraw
       await program.methods
-        .withdraw(new anchor.BN(withdrawAmount))
+        .withdraw(new anchor.BN(withdrawAmount.toString()))
         .accounts({
           distributor: distributorPda,
           vault: vault,
@@ -558,8 +561,11 @@ function buildMerkleTree(leaves: { wallet: PublicKey; amount: number; index: num
   // Step 1: Create leaf hashes
   const leafHashes = leaves.map(leaf => {
     const walletBytes = leaf.wallet.toBytes();
-    const amountBytes = Buffer.alloc(8);
-    amountBytes.writeBigUInt64LE(BigInt(leaf.amount));
+    // Use 32 bytes for amount to match smart contract
+    const amountBytes = Buffer.alloc(32);
+    const amountBuf = Buffer.alloc(8);
+    amountBuf.writeBigUInt64LE(BigInt(leaf.amount));
+    amountBuf.copy(amountBytes, 0);
     
     const combined = Buffer.concat([walletBytes, amountBytes]);
     return Buffer.from(keccak256(combined), "hex");

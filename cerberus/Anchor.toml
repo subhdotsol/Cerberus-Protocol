@@ -15,7 +15,7 @@ cerberus = "HopC35nDjfRjRGYEvao9y3j3EN2iqtqKJ6Zkj6MaeshD"
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "Devnet"
+cluster = "Localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
