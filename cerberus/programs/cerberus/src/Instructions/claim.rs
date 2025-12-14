@@ -69,9 +69,12 @@ pub fn claim(
     
     // Step 5: Compute the leaf hash from claimer wallet and amount
     // Leaf = keccak256(wallet_pubkey || amount)
-    let leaf_hash = solana_program::keccak::hashv(&[
+    let mut amount_bytes = [0u8; 32];
+    amount_bytes[..8].copy_from_slice(&amount.to_le_bytes());
+    
+    let leaf_hash = anchor_lang::solana_program::keccak::hashv(&[
         &ctx.accounts.claimer.key().to_bytes(),
-        &amount.to_le_bytes(),
+        &amount_bytes,
     ]);
     
     // Step 6: Verify the Merkle proof
@@ -145,13 +148,13 @@ fn verify_merkle_proof(
         // Step 3: Determine ordering (smaller hash goes first for deterministic hashing)
         computed_hash = if computed_hash <= *proof_element {
             // Step 3a: Current hash is smaller, so it goes first
-            solana_program::keccak::hashv(&[
+            anchor_lang::solana_program::keccak::hashv(&[
                 &computed_hash,
                 proof_element,
             ]).0
         } else {
             // Step 3b: Proof element is smaller, so it goes first
-            solana_program::keccak::hashv(&[
+            anchor_lang::solana_program::keccak::hashv(&[
                 proof_element,
                 &computed_hash,
             ]).0
